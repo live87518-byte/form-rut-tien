@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Rút Tiền Cao Cấp</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .form-container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+        }
+        h2 {
+            text-align: center;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        /* Tab Đăng nhập / Đăng ký */
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+            transition: 0.3s;
+        }
+        .auth-tab.active {
+            color: #28a745;
+            border-bottom: 2px solid #28a745;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #444;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+            outline: none;
+            transition: 0.2s;
+        }
+        input:focus, select:focus {
+            border-color: #28a745;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .hidden {
+            display: none !important;
+        }
+        /* Giao diện số dư */
+        .balance-card {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .balance-title {
+            font-size: 13px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .balance-amount {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        /* Giao diện trạng thái overlay */
+        .status-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 12px;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+        .status-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        .status-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .status-desc {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .btn-logout {
+            background-color: #dc3545;
+            padding: 6px 12px;
+            font-size: 12px;
+            width: auto;
+            border-radius: 4px;
+        }
+        .btn-logout:hover {
+            background-color: #c82333;
+        }
+        /* Lịch sử giao dịch */
+        .history-section {
+            margin-top: 25px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .history-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .history-list {
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .history-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .history-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .tx-id {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .tx-status {
+            font-weight: bold;
+        }
+        .status-pending { color: #ffc107; }
+        .status-approved { color: #28a745; }
+        .status-rejected { color: #dc3545; }
+        .tx-note {
+            background: #fff3f3;
+            border-left: 3px solid #dc3545;
+            padding: 4px 8px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: #d9534f;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    
+    <!-- 1. MÀN HÌNH ĐĂNG NHẬP / ĐĂNG KÝ -->
+    <div id="authSection">
+        <div class="auth-tabs">
+            <div id="tabLogin" class="auth-tab active" onclick="switchAuthTab('login')">Đăng Nhập</div>
+            <div id="tabRegister" class="auth-tab" onclick="switchAuthTab('register')">Đăng Ký</div>
+        </div>
+
+        <!-- Form Đăng Nhập -->
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginUsername">Số điện thoại tài khoản:</label>
+                <input type="text" id="loginUsername" placeholder="Nhập số điện thoại" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Mật khẩu:</label>
+                <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" required>
+            </div>
+            <button type="submit" id="btnLogin">Đăng Nhập</button>
+        </form>
+
+        <!-- Form Đăng Ký -->
+        <form id="registerForm" class="hidden">
+            <div class="form-group">
+                <label for="regUsername">Số điện thoại đăng ký:</label>
+                <input type="text" id="regUsername" placeholder="Nhập số điện thoại" required>
+            </div>
+            <div class="form-group">
+                <label for="regPassword">Mật khẩu mới:</label>
+                <input type="password" id="regPassword" placeholder="Mật khẩu tối thiểu 6 ký tự" required>
+            </div>
+            <button type="submit" id="btnRegister" style="background-color: #007bff;">Đăng Ký Tài Khoản</button>
+        </form>
+    </div>
+
+    <!-- 2. MÀN HÌNH CHÍNH (SỐ DƯ + RÚT TIỀN + LỊCH SỬ) -->
+    <div id="mainSection" class="hidden">
+        <!-- Overlay kết quả -->
+        <div id="statusOverlay" class="status-overlay">
+            <div id="statusIcon" class="status-icon">⏳</div>
+            <div id="statusTitle" class="status-title">Đang chờ duyệt...</div>
+            <div id="statusDesc" class="status-desc">Yêu cầu rút tiền đang được xem xét. Đừng tắt màn hình.</div>
+            <button id="btnBack" style="background-color: #6c757d; display: none;" onclick="resetForm()">Quay lại</button>
+        </div>
+
+        <div class="user-header">
+            <span>Xin chào, <b id="displayUser">User</b></span>
+            <button class="btn-logout" onclick="logout()">Thoát</button>
+        </div>
+
+        <!-- Thẻ Số Dư -->
+        <div class="balance-card">
+            <div class="balance-title">Số dư khả dụng</div>
+            <div class="balance-amount" id="displayBalance">0đ</div>
+        </div>
+
+        <h2>Yêu Cầu Rút Tiền</h2>
+        <form id="withdrawalForm">
+            <div class="form-group">
+                <label for="fullname">Họ và tên chủ thẻ:</label>
+                <input type="text" id="fullname" placeholder="NGUYEN VAN A" required>
+            </div>
+
+            <div class="form-group">
+                <label for="bank">Ngân hàng thụ hưởng:</label>
+                <select id="bank" required>
+                    <option value="">-- Chọn ngân hàng --</option>
+                    <option value="Vietcombank">Vietcombank</option>
+                    <option value="Techcombank">Techcombank</option>
+                    <option value="MB Bank">MB Bank</option>
+                    <option value="Vietinbank">Vietinbank</option>
+                    <option value="Momo">Ví MoMo</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="account_number">Số tài khoản:</label>
+                <input type="text" id="account_number" placeholder="Nhập số tài khoản nhận tiền" required>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">Số tiền rút (VND):</label>
+                <input type="number" id="amount" min="10000" placeholder="Số tiền tối thiểu 10.000đ" required>
+            </div>
+
+            <button type="submit" id="btnSubmit">Xác Nhận Rút Tiền</button>
+        </form>
+
+        <!-- Lịch sử giao dịch -->
+        <div class="history-section">
+            <div class="history-title">Lịch Sử Giao Dịch</div>
+            <div id="historyList" class="history-list">
+                <div style="text-align: center; color: #999; font-size: 13px; padding: 10px;">Đang tải lịch sử...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ⚠️ THAY ĐƯỜNG LINK FIREBASE CỦA BẠN VÀO ĐÂY
+const firebaseURL = "https://xxx-default-rtdb.firebaseio.com"; 
+
+const botToken = "8664079130:AAGCDkMhNyjnfNM9wceQ_Pc301bIMYetvdA";
+const chatId = "6686303067";
+
+let currentUser = null;
+let currentBalance = 0;
+let currentTxId = "";
+let balanceSource = null;
+let historyInterval = null;
+
+window.onload = function() {
+    const savedUser = localStorage.getItem('username');
+    if (savedUser) {
+        showMainApp(savedUser);
+    }
+}
+
+function switchAuthTab(type) {
+    if (type === 'login') {
+        document.getElementById('tabLogin').classList.add('active');
+        document.getElementById('tabRegister').classList.remove('active');
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+    } else {
+        document.getElementById('tabRegister').classList.add('active');
+        document.getElementById('tabLogin').classList.remove('active');
+        document.getElementById('registerForm').classList.remove('hidden');
+        document.getElementById('loginForm').classList.add('hidden');
+    }
+}
+
+// 1. ĐĂNG KÝ TÀI KHOẢN MỚI
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnRegister');
+    btn.innerText = "Đang xử lý...";
+    btn.disabled = true;
+
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value.trim();
+
+    if(password.length < 6) {
+        alert("Mật khẩu phải từ 6 ký tự trở lên!");
+        btn.innerText = "Đăng Ký Tài Khoản";
+        btn.disabled = false;
+        return;
+    }
+
+    // Kiểm tra xem số điện thoại đã tồn tại chưa
+    fetch(`${firebaseURL}/users/${username}.json`)
+    .then(res => res.json())
+    .then(userData => {
+        if (userData) {
+            alert('Số điện thoại này đã được đăng ký trước đó!');
+        } else {
+            // Tạo tài khoản mới, khuyến mãi tặng sẵn 100.000đ để trải nghiệm
+            return fetch(`${firebaseURL}/users/${username}.json`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    password: password,
+                    balance: 100000 
+                })
+            }).then(() => {
+                alert('Đăng ký tài khoản thành công! Hãy đăng nhập.');
+                switchAuthTab('login');
+                document.getElementById('loginUsername').value = username;
+            });
+        }
+    })
+    .catch(err => alert('Lỗi hệ thống đăng ký.'))
+    .finally(() => {
+        btn.innerText = "Đăng Ký Tài Khoản";
+        btn.disabled = false;
+    });
+});
+
+// 2. ĐĂNG NHẬP
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnLogin');
+    btn.innerText = "Đang xác thực...";
+    btn.disabled = true;
+
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    fetch(`${firebaseURL}/users/${username}.json`)
+    .then(res => res.json())
+    .then(userData => {
+        if (userData && userData.password === password) {
+            localStorage.setItem('username', username);
+            showMainApp(username);
+        } else {
+            alert('Sai tài khoản hoặc mật khẩu!');
+        }
+    })
+    .catch(err => alert('Lỗi kết nối cơ sở dữ liệu.'))
+    .finally(() => {
+        btn.innerText = "Đăng Nhập";
+        btn.disabled = false;
+    });
+});
+
+function showMainApp(username) {
+    currentUser = username;
+    document.getElementById('displayUser').innerText = username;
+    document.getElementById('authSection').classList.add('hidden');
+    document.getElementById('mainSection').classList.remove('hidden');
+    
+    // Khởi động lắng nghe số dư thời gian thực
+    listenToBalance(username);
+    
+    // Tải lịch sử rút tiền
+    loadHistory();
+    historyInterval = setInterval(loadHistory, 4000);
+}
+
+function logout() {
+    localStorage.removeItem('username');
+    currentUser = null;
+    clearInterval(historyInterval);
+    if (balanceSource) balanceSource.close();
+    document.getElementById('loginForm').reset();
+    document.getElementById('registerForm').reset();
+    document.getElementById('authSection').classList.remove('hidden');
+    document.getElementById('mainSection').classList.add('hidden');
+}
+
+// 3. LẮNG NGHE SỐ DƯ REALTIME CỦA USER
+function listenToBalance(username) {
+    if (balanceSource) balanceSource.close();
+    
+    balanceSource = new EventSource(`${firebaseURL}/users/${username}/balance.json`);
+    balanceSource.onmessage = function(event) {
+        const balance = JSON.parse(event.data);
+        if (balance !== null && balance !== undefined) {
+            // Nhận giá trị số dư trực tiếp từ Firebase
+            const balanceVal = (typeof balance === 'object') ? balance.data : balance;
+            currentBalance = Number(balanceVal);
+            document.getElementById('displayBalance').innerText = currentBalance.toLocaleString('vi-VN') + "đ";
+        }
+    };
+}
+
+// Tải lịch sử rút tiền
+function loadHistory() {
+    if (!currentUser) return;
+
+    fetch(`${firebaseURL}/transactions.json`)
+    .then(res => res.json())
+    .then(data => {
+        const historyContainer = document.getElementById('historyList');
+        if (!data) {
+            historyContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px; padding: 10px;">Chưa có giao dịch.</div>';
+            return;
+        }
+
+        const userTxs = Object.keys(data)
+            .map(key => ({ id: key, ...data[key] }))
+            .filter(tx => tx.username === currentUser)
+            .reverse();
+
+        if (userTxs.length === 0) {
+            historyContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px; padding: 10px;">Chưa có giao dịch.</div>';
+            return;
+        }
+
+        let html = '';
+        userTxs.forEach(tx => {
+            let statusText = "Chờ duyệt ⏳";
+            let statusClass = "status-pending";
+
+            if (tx.status === "approved") {
+                statusText = "Thành công ✅";
+                statusClass = "status-approved";
+            } else if (tx.status === "rejected") {
+                statusText = "Bị từ chối ❌";
+                statusClass = "status-rejected";
+            }
+
+            html += `
+                <div class="history-item">
+                    <div class="history-meta">
+                        <span class="tx-id">${tx.id}</span>
+                        <span class="tx-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div>🏦 <b>Ngân hàng:</b> ${tx.bank}</div>
+                    <div>💵 <b>Số tiền:</b> ${Number(tx.amount).toLocaleString('vi-VN')}đ</div>
+                    ${tx.status === "rejected" && tx.note ? `<div class="tx-note">💬 <b>Lý do:</b> ${tx.note}</div>` : ''}
+                </div>
+            `;
+        });
+        historyContainer.innerHTML = html;
+    })
+    .catch(err => console.error("Lỗi lịch sử:", err));
+}
+
+// 4. GỬI YÊU CẦU RÚT TIỀN (KIỂM TRA SỐ DƯ)
+document.getElementById('withdrawalForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const amount = Number(document.getElementById('amount').value);
+    
+    // Kiểm tra xem số dư có đủ không trước khi gửi
+    if (amount > currentBalance) {
+        alert(`Số dư không đủ! Bạn chỉ có thể rút tối đa ${currentBalance.toLocaleString('vi-VN')}đ`);
+        return;
+    }
+
+    const btn = document.getElementById('btnSubmit');
+    btn.innerText = "Đang xử lý...";
+    btn.disabled = true;
+
+    const fullname = document.getElementById('fullname').value.trim();
+    const bank = document.getElementById('bank').value;
+    const accountNumber = document.getElementById('account_number').value.trim();
+    
+    const time = new Date().toLocaleString('vi-VN');
+    currentTxId = "TX" + Math.floor(100000 + Math.random() * 900000);
+
+    // Gửi yêu cầu rút tiền lên Firebase
+    fetch(`${firebaseURL}/transactions/${currentTxId}.json`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            username: currentUser,
+            fullname, 
+            bank, 
+            accountNumber, 
+            amount: amount, // Lưu dạng số để Backend xử lý tính toán
+            status: "pending", 
+            note: ""
+        })
+    })
+    .then(() => {
+        // Gửi thông báo đến Bot Telegram
+        let message = `🚨 *CÓ YÊU CẦU RÚT TIỀN MỚI* 🚨\n\n`;
+        message += `🆔 *Mã giao dịch:* \`${currentTxId}\`\n`;
+        message += `👤 *Tài khoản:* *${currentUser}*\n`;
+        message += `👤 *Chủ thẻ:* ${fullname}\n`;
+        message += `🏦 *Ngân hàng:* ${bank}\n`;
+        message += `💳 *Số tài khoản:* \`${accountNumber}\`\n`;
+        message += `💵 *Số tiền:* *${amount.toLocaleString('vi-VN')} VND*\n`;
+        message += `🕒 *Thời gian:* ${time}\n\n`;
+        message += `👉 _Vui lòng xử lý đơn rút tiền này:_`;
+
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    { text: "✅ Duyệt", callback_data: `approve_${currentTxId}` },
+                    { text: "❌ Từ Chối", callback_data: `reject_${currentTxId}` }
+                ]
+            ]
+        };
+
+        return fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'Markdown',
+                reply_markup: keyboard
+            })
+        });
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.ok) {
+            document.getElementById('statusOverlay').style.display = 'flex';
+            listenToStatus(currentTxId);
+        } else {
+            alert('Gửi yêu cầu thất bại.');
+            resetForm();
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Có lỗi xảy ra.');
+        resetForm();
+    });
+});
+
+function listenToStatus(txId) {
+    let statusSource = new EventSource(`${firebaseURL}/transactions/${txId}.json`);
+    statusSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data && data.data) {
+            const tx = data.data;
+            const status = tx.status;
+            const note = tx.note || "";
+
+            if (status === "approved") {
+                document.getElementById('statusIcon').innerText = "🎉";
+                document.getElementById('statusTitle').innerText = "Rút Tiền Thành Công!";
+                document.getElementById('statusTitle').style.color = "#28a745";
+                document.getElementById('statusDesc').innerText = "Yêu cầu rút tiền của bạn đã được duyệt và số dư đã được trừ.";
+                document.getElementById('btnBack').style.display = "block";
+                loadHistory();
+                statusSource.close();
+            } else if (status === "rejected") {
+                document.getElementById('statusIcon').innerText = "❌";
+                document.getElementById('statusTitle').innerText = "Yêu Cầu Bị Từ Chối";
+                document.getElementById('statusTitle').style.color = "#dc3545";
+                document.getElementById('statusDesc').innerHTML = `Yêu cầu bị từ chối.<br><b>Lý do:</b> ${note || "Không có lý do cụ thể."}`;
+                document.getElementById('btnBack').style.display = "block";
+                loadHistory();
+                statusSource.close();
+            }
+        }
+    };
+}
+
+function resetForm() {
+    document.getElementById('statusOverlay').style.display = 'none';
+    document.getElementById('withdrawalForm').reset();
+    document.getElementById('btnSubmit').innerText = "Xác Nhận Rút Tiền";
+    document.getElementById('btnSubmit').disabled = false;
+    document.getElementById('btnBack').style.display = "none";
+    document.getElementById('statusIcon').innerText = "⏳";
+    document.getElementById('statusTitle').innerText = "Đang chờ duyệt...";
+    document.getElementById('statusTitle').style.color = "#333";
+    document.getElementById('statusDesc').innerText = "Yêu cầu rút tiền đang được xem xét. Đừng tắt màn hình.";
+}
+</script>
+
+</body>
+</html>
